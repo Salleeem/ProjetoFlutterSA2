@@ -1,3 +1,4 @@
+import 'package:projeto/model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
