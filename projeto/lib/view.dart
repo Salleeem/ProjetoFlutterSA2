@@ -1,18 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:projeto/controll.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: "Teste Shared Preferences",
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: _isDarkMode ? Brightness.dark : Brightness.light,
+        fontFamily: _fontFamily,
+        textTheme: TextTheme(
+          bodyText2: TextStyle(fontSize: _fontSize),
+        ),
+      ),
+      home: FutureBuilder(
+        future: _loadPreferences(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return HomePage();
+          } else {
+            return Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  static double _fontSize = 16.0;
+  static String _fontFamily = 'Roboto';
+  static bool _isDarkMode = false;
+
+  static Future<void> _loadPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _fontSize = (prefs.getDouble('fontSize') ?? 16.0);
+    _fontFamily = (prefs.getString('fontFamily') ?? 'Roboto');
+    _isDarkMode = (prefs.getBool('isDarkMode') ?? false);
+  }
+}
 
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home'),
+        title: const Text('Home'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Text(
+              'Bem-vindo à sua conta!',
+              style: TextStyle(fontSize: 20),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
@@ -20,7 +67,7 @@ class HomePage extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => RegisterPage()),
                 );
               },
-              child: Text('Cadastro'),
+              child: const Text('Cadastro'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -29,7 +76,7 @@ class HomePage extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => LoginPage()),
                 );
               },
-              child: Text('Login'),
+              child: const Text('Login'),
             ),
           ],
         ),
@@ -46,7 +93,7 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: const Text('Login'),
       ),
       body: Center(
         child: Padding(
@@ -56,25 +103,25 @@ class LoginPage extends StatelessWidget {
             children: [
               TextField(
                 controller: _usernameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Usuário',
                 ),
               ),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Senha',
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   final username = _usernameController.text;
                   final password = _passwordController.text;
                   _login(context, username, password);
                 },
-                child: Text('Login'),
+                child: const Text('Login'),
               ),
             ],
           ),
@@ -95,7 +142,7 @@ class LoginPage extends StatelessWidget {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Usuário ou senha incorretos.'),
         ),
       );
@@ -111,7 +158,7 @@ class RegisterPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cadastro'),
+        title: const Text('Cadastro'),
       ),
       body: Center(
         child: Padding(
@@ -121,25 +168,25 @@ class RegisterPage extends StatelessWidget {
             children: [
               TextField(
                 controller: _usernameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Usuário',
                 ),
               ),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Senha',
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   final username = _usernameController.text;
                   final password = _passwordController.text;
                   _register(context, username, password);
                 },
-                child: Text('Registrar'),
+                child: const Text('Registrar'),
               ),
             ],
           ),
@@ -152,7 +199,7 @@ class RegisterPage extends StatelessWidget {
     final controller = DatabaseController();
     await controller.registerUser(username, password);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('Usuário registrado com sucesso.'),
       ),
     );
@@ -174,7 +221,7 @@ class WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bem-vindo'),
+        title: const Text('Bem-vindo'),
       ),
       body: Center(
         child: Column(
@@ -183,6 +230,7 @@ class WelcomePage extends StatelessWidget {
             Text('Bem-vindo, $username!'),
             ElevatedButton(
               onPressed: () {
+                _clearPreferences();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -190,11 +238,124 @@ class WelcomePage extends StatelessWidget {
                   ),
                 );
               },
-              child: Text('Sair'),
+              child: const Text('Sair'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PreferencesPage(username: username)),
+                );
+              },
+              child: const Text('Preferências'),
             ),
           ],
         ),
       ),
     );
+  }
+  
+}
+
+class PreferencesPage extends StatefulWidget {
+  final String username;
+
+  const PreferencesPage({required this.username});
+
+  @override
+  _PreferencesPageState createState() => _PreferencesPageState(username: username);
+}
+
+class _PreferencesPageState extends State<PreferencesPage> {
+  final String username;
+  _PreferencesPageState({required this.username});
+  double _fontSize = 16.0;
+  String _fontFamily = 'Roboto';
+  bool _isDarkMode = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Preferências'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Tamanho da Fonte:',
+              style: TextStyle(fontSize: 20.0),
+            ),
+            Slider(
+              value: _fontSize,
+              min: 10.0,
+              max: 30.0,
+              onChanged: (value) {
+                setState(() {
+                  _fontSize = value;
+                });
+              },
+            ),
+            const SizedBox(height: 20.0),
+            const Text(
+              'Família da Fonte:',
+              style: TextStyle(fontSize: 20.0),
+            ),
+            DropdownButton<String>(
+              value: _fontFamily,
+              items: <String>['Roboto', 'Arial', 'Times New Roman']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? value) {
+                setState(() {
+                  _fontFamily = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 20.0),
+            const Text(
+              'Modo Escuro:',
+              style: TextStyle(fontSize: 20.0),
+            ),
+            Switch(
+              value: _isDarkMode,
+              onChanged: (value) {
+                setState(() {
+                  _isDarkMode = value;
+                });
+              },
+            ),
+            const SizedBox(height: 20.0),
+            ElevatedButton(
+              onPressed: () {
+                _savePreferences();
+                Navigator.pop(context); // Voltar para a tela anterior
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _savePreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setDouble('fontSize_$username', _fontSize);
+    prefs.setString('fontFamily_$username', _fontFamily);
+    prefs.setBool('isDarkMode_$username', _isDarkMode);
+  }
+
+  void _clearPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.remove('fontSize_$username');
+    prefs.remove('fontFamily_$username');
+    prefs.setBool('isDarkMode_$username', false);
   }
 }
